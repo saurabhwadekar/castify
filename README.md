@@ -1,5 +1,6 @@
-# Castify
 
+![ChatGPT Image May 26, 2025, 02_05_19 PM](https://github.com/user-attachments/assets/1ea1fb22-6199-479d-aac9-ecf86c835461)
+# Castify
 **Castify** — a blazing-fast, Rust-powered real-time broadcast server 🚀
 
 ![License](https://img.shields.io/github/license/YOUR_USERNAME/castify)
