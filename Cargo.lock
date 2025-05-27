@@ -362,6 +362,7 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "dotenv",
+ "once_cell",
  "reqwest",
  "serde_json",
 ]

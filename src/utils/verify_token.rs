@@ -1,23 +1,16 @@
-use super::get_env_vars::get_env_var;
+use crate::config::{GLOBAL_TOKEN, SERVER_SECRET, USE_GLOBAL_TOKEN, VERIFICATION_URL};
 use reqwest;
 
 pub async fn verify_token(token: &str) -> bool {
-    let g_token = get_env_var("GLOBAL_TOKEN", "GLOBAL_TOKEN".to_string());
-
-    if get_env_var("USE_GLOBAL_TOKEN", false) {
-        return token == g_token;
+    if *USE_GLOBAL_TOKEN {
+        return token == *GLOBAL_TOKEN;
     }
 
     let client = reqwest::Client::new();
-    let secret = get_env_var("SERVER_SECRET", "SERVER_SECRET_KEY".to_string());
-    let verification_url = get_env_var(
-        "VERIFICATION_URL",
-        "http://localhost:3000/verify".to_string(),
-    );
 
     match client
-        .post(verification_url)
-        .json(&serde_json::json!({ "secret":secret,"token": token }))
+        .post(VERIFICATION_URL.as_str())
+        .json(&serde_json::json!({ "secret":*SERVER_SECRET,"token": token }))
         .send()
         .await
     {
