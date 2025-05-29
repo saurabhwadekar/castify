@@ -20,12 +20,24 @@ pub async fn broadcast(
     })
     .to_string();
 
-    let map = clients.lock().unwrap();
-    for (_id, tx) in map.iter() {
+    // STEP 1: Take snapshot of all (id, tx) pairs
+    let snapshot = match clients.lock() {
+        Ok(map) => map
+            .iter()
+            .map(|(id, tx)| (id.clone(), tx.clone()))
+            .collect::<Vec<_>>(),
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to lock clients"),
+    };
+
+    // STEP 2: Loop through snapshot outside lock
+    for (id, tx) in snapshot {
         if tx.is_closed() {
-            clients.lock().unwrap().remove(_id); // Remove the closed channel
-            continue; // Skip closed channels
+            // Lock only briefly to remove closed client
+            let mut map = clients.lock().unwrap();
+            map.remove(&id);
+            continue;
         }
+
         let _ = tx.send(json_msg.clone());
     }
 
