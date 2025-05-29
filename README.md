@@ -51,3 +51,17 @@ Castify is not designed for chat apps or multiplayer games, as it only supports 
 git clone https://github.com/saurabhwadekar/castify.git
 cd castify
 cargo build --release
+```
+## ⚙ Docker
+```bash
+docker pull saurabhwadekar/castify:latest
+```
+```bash
+docker run -d -p 8000:8000 \
+    -e SERVER_SECRET=your_secret_key_here \
+    -e VERIFICATION_URL=http://localhost:3000/api/verify \
+    -e GLOBAL_TOKEN=your_global_token_here \
+    -e USE_GLOBAL_TOKEN=true \
+    saurabhwadekar/castify:latest
+```
+
