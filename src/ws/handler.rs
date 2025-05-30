@@ -9,10 +9,15 @@ use uuid;
 /// Helper function to safely remove a client from the shared Clients map
 fn cleanup_client(clients: &Clients, client_id: &str) {
     let mut locked = clients.lock().unwrap();
-    if locked.remove(client_id).is_some() {
-        println!("Client {} cleaned up and removed", client_id);
-    } else {
-        println!("Client {} was already removed or not found", client_id);
+    let removed = locked.remove(client_id);
+    // Uncomment the following lines for debugging purposes
+    #[cfg(debug_assertions)]
+    {
+        if removed.is_some() {
+            println!("Client {} cleaned up and removed", client_id);
+        } else {
+            println!("Client {} was already removed or not found", client_id);
+        }
     }
 }
 
@@ -45,24 +50,38 @@ pub async fn handler(
     let client_id = uuid::Uuid::new_v4().to_string();
     clients.lock().unwrap().insert(client_id.clone(), tx);
     let clients_clone = clients.clone();
-
     // Receiver → listen incoming client messages
     actix_web::rt::spawn({
         let client_id = client_id.clone();
+        let mut session = session.clone();
         async move {
             while let Some(msg_result) = msg_stream.next().await {
-                match msg_result {
-                    Ok(Message::Text(text)) => {
-                        println!("Received from client {}: {}", client_id, text);
+                match &msg_result {
+                    Ok(Message::Ping(bytes)) => {
+                        let _ = session.pong(bytes).await;
                     }
-                    Ok(Message::Close(_)) => {
-                        println!("Client {} requested close", client_id);
+                    Err(_) => {
                         break;
                     }
-                    Ok(_) => {}
-                    Err(e) => {
-                        println!("Error on client {}: {:?}", client_id, e);
-                        break;
+                    _ => {}
+                }
+
+                #[cfg(debug_assertions)]
+                {
+                    match msg_result {
+                        Ok(Message::Text(_text)) => {
+                            println!("Received from client {}: {}", client_id, _text);
+                        }
+                        Ok(Message::Close(_)) => {
+                            println!("Client {} requested close", client_id);
+                        }
+                        Ok(Message::Pong(_)) => {
+                            println!("Received pong response from client {}", client_id);
+                        }
+                        Err(_e) => {
+                            println!("Error on client {}: {:?}", client_id, _e);
+                        }
+                        _ => {}
                     }
                 }
             }
@@ -75,14 +94,28 @@ pub async fn handler(
     actix_web::rt::spawn({
         let clients_clone = clients.clone();
         let client_id = client_id.clone();
+        let mut session = session.clone();
         async move {
             while let Some(server_msg) = rx.recv().await {
                 if session.text(server_msg).await.is_err() {
-                    println!("Failed to send to client {}, closing sender", client_id);
                     break;
                 }
             }
+            cleanup_client(&clients_clone, &client_id);
+        }
+    });
 
+    // send ping message to client every 60 seconds
+    actix_web::rt::spawn({
+        let clients_clone = clients.clone();
+        let client_id = client_id.clone();
+        async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+                if session.ping(b"ping").await.is_err() {
+                    break;
+                }
+            }
             cleanup_client(&clients_clone, &client_id);
         }
     });
