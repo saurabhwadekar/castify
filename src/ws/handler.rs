@@ -9,11 +9,11 @@ use uuid;
 /// Helper function to safely remove a client from the shared Clients map
 fn cleanup_client(clients: &Clients, client_id: &str) {
     let mut locked = clients.lock().unwrap();
-    let removed = locked.remove(client_id);
+    let _removed = locked.remove(client_id);
     // Uncomment the following lines for debugging purposes
     #[cfg(debug_assertions)]
     {
-        if removed.is_some() {
+        if _removed.is_some() {
             println!("Client {} cleaned up and removed", client_id);
         } else {
             println!("Client {} was already removed or not found", client_id);

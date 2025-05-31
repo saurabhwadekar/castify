@@ -18,3 +18,10 @@ tokio = { version = "1.45.1", features = ["rt-multi-thread", "macros"] }
 [[bin]]
 name = "castify"
 path = "src/main.rs"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
