@@ -16,10 +16,11 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
     let clients: Clients = Arc::new(Mutex::new(HashMap::new()));
-
+    let count: Arc<Mutex<i64>> = Arc::new(Mutex::new(0));
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(clients.clone()))
+            .app_data(web::Data::new(count.clone()))
             .service(status_responder)
             .service(handler)
             .service(broadcast)
